@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+gol
+
+# Dev Env
+.vscode

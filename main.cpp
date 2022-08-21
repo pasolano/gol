@@ -4,10 +4,7 @@
 
 const std::string HEADER = "#Life 1.06";
 
-std::vector<Grid*> grids;
-
-// TODO if grids are next to each other, fuse them
-
+// TODO add checks for max/min Int64 value
 class Vec2d {
     public:
         long long x, y;
@@ -21,33 +18,56 @@ class Vec2d {
 };
 
 class Grid {
-    static const int GRID_SIZE {64}; // arbitrary, but must be factor of 2**64
-    bool grid[GRID_SIZE][GRID_SIZE] {false};
+    long long x_start, y_start, x_end, y_end, size;
+    std::vector<std::vector<bool>> grid;
     public:
         // returns if cell was added to grid
         bool addCell(const Vec2d cell) {
+            if (inBounds(cell)) {
+                grid[cell.y % size][cell.x % size] = true;
+                return true;
+            }
+            return false;
+        }
 
+        bool inBounds(const Vec2d cell) const {
+            if (x_start <= cell.x && cell.x < x_end) {
+                if (y_start <= cell.y && cell.y < y_end) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        Grid(long long x_start, long long y_start, long long size) : x_start(x_start), y_start(y_start), size(size), x_end(x_start + size), y_end(y_start + size) {
+            grid = std::vector<std::vector<bool>>(size);
         }
 };
 
-// could optimize checking for existing grid using BSP trees instead of big list
+std::vector<Grid*> grids;
 
-void addToGrid(Vec2d cell) {
-    // if cell already in grid
+// could optimize checking for existing grid using BSP trees instead of big list
+bool gridExists(Vec2d cell) {
     for (auto g : grids) {
-        ;
+        if (g->addCell(cell)) {
+           return true;
+        }
     }
-    // add to existing subgrid
-    // else
-    // create new subgrid and add to it
+    return false;
 }
 
-// TODO add checks for max boundaries
+void addToGrid(Vec2d cell) {
+    // check if subgrid already exists
+    if (!gridExists(cell)) {
+        // TODO create new subgrid and add to it
+        // could optimize here by fusing neighboring subgrids together
+    }
+}
 
 int main() {
     // read from stdin
     std::string line;
-    while (getline(std::cin, line)) {
+    while (getline(std::cin, line) && !line.empty()) {
         Vec2d cell(line);
         addToGrid(cell);
     }
