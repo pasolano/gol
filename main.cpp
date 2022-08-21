@@ -18,6 +18,7 @@ class Vec2d {
 };
 
 class Grid {
+    const static int GRID_SIZE {64};
     long long x_start, y_start, x_end, y_end, size;
     std::vector<std::vector<bool>> grid;
     public:
@@ -39,8 +40,18 @@ class Grid {
             return false;
         }
 
-        Grid(long long x_start, long long y_start, long long size) : x_start(x_start), y_start(y_start), size(size), x_end(x_start + size), y_end(y_start + size) {
+        Grid(long long x_start, long long y_start, long long size = GRID_SIZE) : x_start(x_start), y_start(y_start), size(size), x_end(x_start + size), y_end(y_start + size) {
             grid = std::vector<std::vector<bool>>(size);
+        }
+
+        Grid(const Vec2d cell, long long size = GRID_SIZE) {
+            grid = std::vector<std::vector<bool>>(size);
+            x_start = cell.x - (cell.x % size);
+            y_start = cell.y - (cell.y % size);
+            x_end = x_start + size;
+            y_end = y_start + size;
+
+            addCell(cell);
         }
 };
 
@@ -59,7 +70,8 @@ bool gridExists(Vec2d cell) {
 void addToGrid(Vec2d cell) {
     // check if subgrid already exists
     if (!gridExists(cell)) {
-        // TODO create new subgrid and add to it
+        // create new grid and add cell to it
+        grids.push_back(new Grid(cell));
         // could optimize here by fusing neighboring subgrids together
     }
 }
