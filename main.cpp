@@ -15,10 +15,16 @@ class Vec2d {
             x = stoll(s.substr(1, pos));
             y = stoll(s.substr(pos + 2));
         }
+        friend std::ostream& operator<< (std::ostream &out, const Vec2d &v);
 };
 
+std::ostream& operator<< (std::ostream &out, const Vec2d &v) {
+    out << '(' << v.x << ", " << v.y << ')' << std::endl;
+    return out;
+}
+
 class Grid {
-    const static int GRID_SIZE {64};
+    const static int GRID_SIZE = 64;
     long long x_start, y_start, x_end, y_end, size;
     std::vector<std::vector<bool>> grid;
     public:
@@ -40,12 +46,59 @@ class Grid {
             return false;
         }
 
-        Grid(long long x_start, long long y_start, long long size = GRID_SIZE) : x_start(x_start), y_start(y_start), size(size), x_end(x_start + size), y_end(y_start + size) {
-            grid = std::vector<std::vector<bool>>(size);
+        bool isCellAlive(long long x, long long y) {
+            return grid[y][x];
         }
 
-        Grid(const Vec2d cell, long long size = GRID_SIZE) {
+        // https://stackoverflow.com/questions/18454793/checking-a-grid-throwing-out-of-bounds-exceptions
+        char coalesceNeighbors(long long x, long long y) {
+            char tot = 0;
+            
+            int min_row = std::max((long long) 0, x - 1);
+            int max_row = std::min(size - 1, x + 1);
+            int min_col = std::max((long long) 0, y - 1);
+            int max_col = std::min(size - 1, y + 1);
+
+            for (int row = min_row; row <= max_row; row++) {
+                for (int col = min_col; col <= max_col; col++) {
+                    if (row != x || col != y) {
+                        if (grid[row][col]) {
+                            tot++;
+                            if (tot > 3) return tot; // always dead over 3
+                        }
+                    }
+                }
+            }
+
+            return tot;
+        }
+
+        bool getCellUpdate(long long x, long long y) {
+            char neighbors = coalesceNeighbors(x, y);
+            if (neighbors == 3) return true;
+            else if (isCellAlive(x, y)) {
+                if (neighbors >= 2 && neighbors <= 3)
+                    return true;
+            }
+            return false;
+        }
+
+        long long getSize() {
+            return size;
+        }
+
+        Grid(long long x_start, long long y_start, long long size = GRID_SIZE) : x_start(x_start), y_start(y_start), size(size), x_end(x_start + size), y_end(y_start + size) {
             grid = std::vector<std::vector<bool>>(size);
+            for (int i = 0; i < size; i++)
+                grid[i] = std::vector<bool>(size);
+        }
+
+        // TODO does this arithmetic work with negative values?
+        Grid(const Vec2d cell, long long size = GRID_SIZE) : size(size) {
+            grid = std::vector<std::vector<bool>>(size);
+            for (int i = 0; i < size; i++)
+                grid[i] = std::vector<bool>(size);
+
             x_start = cell.x - (cell.x % size);
             y_start = cell.y - (cell.y % size);
             x_end = x_start + size;
@@ -59,7 +112,7 @@ std::vector<Grid*> grids;
 
 // could optimize checking for existing grid using BSP trees instead of big list
 bool gridExists(Vec2d cell) {
-    for (auto g : grids) {
+    for (auto &g : grids) {
         if (g->addCell(cell)) {
            return true;
         }
@@ -84,12 +137,38 @@ int main() {
         addToGrid(cell);
     }
 
+    std::vector<Vec2d> next_gen;
     // for each subgrid (remember to check perimeter for alive ones too)
+    for (Grid* grid : grids) {
+        const long long s {grid->getSize()};
+        for (int y = 0; y < s; y++) {
+            for (int x = 0; x < s; x++) {
+                if (grid->getCellUpdate(x, y)) {
+                    next_gen.push_back(Vec2d(x,y));
+                }
+            }
+        }
+    }
+
+
+    std::cout << HEADER << std::endl;
+    for (Vec2d vec : next_gen) {
+        std::cout << vec << std::endl;
+    }
+
+    // output next_gen or feed back into function
+
     //  for each cell
     //   get neighbors
     //   if cell is alive in next state, write coords to string vector
     // feed coords back to self and repeat algorithm for 10 gens (can probably optimize this)
     // or write coords to stdout if done
+
+    // this might not work
+    for (auto &ptr : grids) {
+        delete ptr;
+    }
+    grids.clear();
 
     return 0;
 }
