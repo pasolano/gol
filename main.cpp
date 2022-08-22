@@ -93,7 +93,7 @@ class Grid {
                 grid[i] = std::vector<bool>(size);
         }
 
-        // TODO does this arithmetic work with negative values?
+        // TEST does this arithmetic work with negative values?
         Grid(const Vec2d cell, long long size = GRID_SIZE) : size(size) {
             grid = std::vector<std::vector<bool>>(size);
             for (int i = 0; i < size; i++)
@@ -110,7 +110,7 @@ class Grid {
 
 std::vector<Grid*> grids;
 
-// could optimize checking for existing grid using BSP trees instead of big list
+// CONSIDER optimize checking for existing grid using BSP trees instead of big list
 bool gridExists(Vec2d cell) {
     for (auto &g : grids) {
         if (g->addCell(cell)) {
@@ -125,17 +125,20 @@ void addToGrid(Vec2d cell) {
     if (!gridExists(cell)) {
         // create new grid and add cell to it
         grids.push_back(new Grid(cell));
-        // could optimize here by fusing neighboring subgrids together
+
+        // CONSIDER could optimize here by fusing neighboring subgrids together
     }
 }
 
 int main() {
+    // CONSIDER adding command line option for number of generations
     const int GENERATIONS {10};
 
     std::vector<Vec2d> next_gen;
 
+    // CONSIDER could create grids during this step instead of doing I/O text data
+
     // read from stdin
-    // can optimize this
     std::string line;
     while (getline(std::cin, line) && !line.empty()) {
         next_gen.push_back(line);
@@ -174,8 +177,8 @@ int main() {
         std::cout << vec << std::endl;
     }
 
+    // CONSIDER adding ASCII board option
     // system("clear");
 
-    // feed coords back to self and repeat algorithm for 10 gens (can probably optimize this)
     return 0;
 }
