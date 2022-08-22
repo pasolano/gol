@@ -34,8 +34,8 @@ class Grid {
             if (inGlobalBounds(cell)) {
                 long long x = cell.x % size;
                 long long y = cell.y % size;
-                if (x < 0) x = size - (x *= -1);
-                if (y < 0) y = size - (y *= -1);
+                if (x < 0) x += size;
+                if (y < 0) y += size;
                 grid[x][y] = true;
                 return true;
             }
