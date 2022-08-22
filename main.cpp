@@ -25,21 +25,36 @@ std::ostream& operator<< (std::ostream &out, const Vec2d &v) {
 
 class Grid {
     const static int GRID_SIZE = 64;
-    long long x_start, y_start, x_end, y_end, size;
+    long long size;
     std::vector<std::vector<bool>> grid;
     public:
+        long long x_start, y_start, x_end, y_end;
+
         // returns if cell was added to grid
         bool addCell(const Vec2d cell) {
-            if (inBounds(cell)) {
-                grid[cell.x % size][cell.y % size] = true;
+            if (inGlobalBounds(cell)) {
+                long long x = cell.x % size;
+                long long y = cell.y % size;
+                if (x < 0) x = size - (x *= -1);
+                if (y < 0) y = size - (y *= -1);
+                grid[x][y] = true;
                 return true;
             }
             return false;
         }
 
-        bool inBounds(const Vec2d cell) const {
+        bool inGlobalBounds(const Vec2d cell) const {
             if (x_start <= cell.x && cell.x < x_end) {
                 if (y_start <= cell.y && cell.y < y_end) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        bool inLocalBounds(long long x, long long y) const {
+            if (0 <= x && x < size) {
+                if (0 <= y && y < size) {
                     return true;
                 }
             }
@@ -62,7 +77,7 @@ class Grid {
             for (int row = min_row; row <= max_row; row++) {
                 for (int col = min_col; col <= max_col; col++) {
                     if (row != x || col != y) {
-                        if (grid[row][col]) {
+                        if (isCellAlive(row, col)) {
                             tot++;
                             if (tot > 3) return tot; // always dead over 3
                         }
@@ -74,9 +89,10 @@ class Grid {
         }
 
         bool getCellUpdate(long long x, long long y) {
+            int i = 0;
             char neighbors = coalesceNeighbors(x, y);
             if (neighbors == 3) return true;
-            else if (inBounds(Vec2d(x, y)) && isCellAlive(x, y)) {
+            else if (inLocalBounds(x, y) && isCellAlive(x, y)) {
                 if (neighbors >= 2 && neighbors <= 3)
                     return true;
             }
@@ -87,13 +103,6 @@ class Grid {
             return size;
         }
 
-        Grid(long long x_start, long long y_start, long long size = GRID_SIZE) : x_start(x_start), y_start(y_start), size(size), x_end(x_start + size), y_end(y_start + size) {
-            grid = std::vector<std::vector<bool>>(size);
-            for (int i = 0; i < size; i++)
-                grid[i] = std::vector<bool>(size);
-        }
-
-        // TEST does this arithmetic work with negative values?
         Grid(const Vec2d cell, long long size = GRID_SIZE) : size(size) {
             grid = std::vector<std::vector<bool>>(size);
             for (int i = 0; i < size; i++)
@@ -103,6 +112,15 @@ class Grid {
             y_start = cell.y - (cell.y % size);
             x_end = x_start + size;
             y_end = y_start + size;
+
+            if (cell.x < 0) {
+                x_start -= size;
+                x_end -= size;
+            }
+            if (cell.y < 0) {
+                y_start -= size;
+                y_end -= size;
+            }
 
             addCell(cell);
         }
@@ -160,7 +178,7 @@ int main() {
             for (int x = -1; x <= s; x++) {
                 for (int y = -1; y <= s; y++) {
                     if (grid->getCellUpdate(x, y)) {
-                        next_gen.push_back(Vec2d(x, y));
+                        next_gen.push_back(Vec2d(grid->x_start + x, grid->y_start + y));
                     }
                 }
             }
