@@ -19,7 +19,7 @@ class Vec2d {
 };
 
 std::ostream& operator<< (std::ostream &out, const Vec2d &v) {
-    out << '(' << v.x << ", " << v.y << ')';
+    out << v.x << ' ' << v.y;
     return out;
 }
 
@@ -76,7 +76,7 @@ class Grid {
         bool getCellUpdate(long long x, long long y) {
             char neighbors = coalesceNeighbors(x, y);
             if (neighbors == 3) return true;
-            else if (isCellAlive(x, y)) {
+            else if (inBounds(Vec2d(x, y)) && isCellAlive(x, y)) {
                 if (neighbors >= 2 && neighbors <= 3)
                     return true;
             }
@@ -130,45 +130,52 @@ void addToGrid(Vec2d cell) {
 }
 
 int main() {
-    // read from stdin
-    std::string line;
-    while (getline(std::cin, line) && !line.empty()) {
-        Vec2d cell(line);
-        addToGrid(cell);
-    }
+    const int GENERATIONS {10};
 
     std::vector<Vec2d> next_gen;
-    // for each subgrid (remember to check perimeter for alive ones too)
-    for (Grid* grid : grids) {
-        const long long s {grid->getSize()};
-        for (int x = 0; x < s; x++) {
-            for (int y = 0; y < s; y++) {
-                if (grid->getCellUpdate(x, y)) {
-                    next_gen.push_back(Vec2d(x, y));
+
+    // read from stdin
+    // can optimize this
+    std::string line;
+    while (getline(std::cin, line) && !line.empty()) {
+        next_gen.push_back(line);
+    }
+
+    for (int i = 0; i < GENERATIONS; i++) {
+        for (auto pair : next_gen) {
+            Vec2d cell(pair);
+            addToGrid(cell);
+        }
+
+        next_gen.clear();
+
+        // for each subgrid (remember to check perimeter for alive ones too)
+        for (Grid* grid : grids) {
+            const long long s {grid->getSize()};
+
+            // NOTE: check perimeter outside of subgrid for born cells
+            for (int x = -1; x <= s; x++) {
+                for (int y = -1; y <= s; y++) {
+                    if (grid->getCellUpdate(x, y)) {
+                        next_gen.push_back(Vec2d(x, y));
+                    }
                 }
             }
         }
-    }
 
+        for (auto &ptr : grids) {
+            delete ptr;
+        }
+        grids.clear();
+    }
 
     std::cout << HEADER << std::endl;
     for (Vec2d vec : next_gen) {
         std::cout << vec << std::endl;
     }
 
-    // output next_gen or feed back into function
+    // system("clear");
 
-    //  for each cell
-    //   get neighbors
-    //   if cell is alive in next state, write coords to string vector
     // feed coords back to self and repeat algorithm for 10 gens (can probably optimize this)
-    // or write coords to stdout if done
-
-    // this might not work
-    for (auto &ptr : grids) {
-        delete ptr;
-    }
-    grids.clear();
-
     return 0;
 }
