@@ -19,7 +19,7 @@ class Vec2d {
 };
 
 std::ostream& operator<< (std::ostream &out, const Vec2d &v) {
-    out << '(' << v.x << ", " << v.y << ')' << std::endl;
+    out << '(' << v.x << ", " << v.y << ')';
     return out;
 }
 
@@ -31,7 +31,7 @@ class Grid {
         // returns if cell was added to grid
         bool addCell(const Vec2d cell) {
             if (inBounds(cell)) {
-                grid[cell.y % size][cell.x % size] = true;
+                grid[cell.x % size][cell.y % size] = true;
                 return true;
             }
             return false;
@@ -47,7 +47,7 @@ class Grid {
         }
 
         bool isCellAlive(long long x, long long y) {
-            return grid[y][x];
+            return grid[x][y];
         }
 
         // https://stackoverflow.com/questions/18454793/checking-a-grid-throwing-out-of-bounds-exceptions
@@ -141,10 +141,10 @@ int main() {
     // for each subgrid (remember to check perimeter for alive ones too)
     for (Grid* grid : grids) {
         const long long s {grid->getSize()};
-        for (int y = 0; y < s; y++) {
-            for (int x = 0; x < s; x++) {
+        for (int x = 0; x < s; x++) {
+            for (int y = 0; y < s; y++) {
                 if (grid->getCellUpdate(x, y)) {
-                    next_gen.push_back(Vec2d(x,y));
+                    next_gen.push_back(Vec2d(x, y));
                 }
             }
         }
