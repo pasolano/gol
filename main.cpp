@@ -4,7 +4,6 @@
 
 const std::string HEADER = "#Life 1.06";
 
-// TODO add checks for max/min Int64 value
 class Vec2d {
     public:
         long long x, y;
@@ -65,7 +64,6 @@ class Grid {
             return grid[x][y];
         }
 
-        // https://stackoverflow.com/questions/18454793/checking-a-grid-throwing-out-of-bounds-exceptions
         char coalesceNeighbors(long long x, long long y) {
             char tot = 0;
             
