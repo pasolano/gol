@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <stack>
+#include <chrono>
 
 const std::string HEADER = "#Life 1.06";
 
@@ -24,10 +25,10 @@ std::ostream& operator<< (std::ostream &out, const Vec2d &v) {
 }
 
 class Grid {
-    const static int GRID_SIZE = 4;
+    const static int GRID_SIZE = 64;
     std::vector<std::vector<bool>> grid;
     public:
-        long long x_start, y_start, x_end, y_end; // TODO change to Vec2d
+        long long x_start, y_start, x_end, y_end;
 
         long long getXSize() const {
             return abs(x_end - x_start);
@@ -73,6 +74,7 @@ class Grid {
             return grid[x][y];
         }
 
+        // returns how many neighbors of passed cell are alive
         char coalesceNeighbors(long long x, long long y) {
             char tot = 0;
             
@@ -95,6 +97,8 @@ class Grid {
             return tot;
         }
 
+        // returns whether the passed cell will be alive or dead in the next frame
+        // true is alive, false is dead
         bool getCellUpdate(long long x, long long y) {
             int i = 0;
             char neighbors = coalesceNeighbors(x, y);
@@ -106,6 +110,7 @@ class Grid {
             return false;
         }
 
+        // Grid this is called on is modified to add the properties of the passed Grid
         void includeGrid(Grid& absorb) {
             long long old_x_start = x_start;
             long long old_y_start = y_start;
@@ -151,18 +156,22 @@ class Grid {
             grid = new_grid;
         }
 
+        // create subgrid based on cell placement and grid size
         Grid(const Vec2d cell, long long size = GRID_SIZE) {
+            // initialize grid container
             grid = std::vector<std::vector<bool>>(size);
             for (int i = 0; i < size; i++)
                 grid[i] = std::vector<bool>(size);
 
+            // calculate start of subgrid
+            // should be last multiple of size before our cell
             x_start = cell.x - (cell.x % size);
             y_start = cell.y - (cell.y % size);
 
+            // move range further back if the value is negative
             if (x_start != cell.x && cell.x < 0) {
                 x_start -= size;
             }
-            
             if (y_start != cell.y && cell.y < 0) {
                 y_start -= size;
             }
@@ -176,7 +185,10 @@ class Grid {
         friend std::ostream& operator<< (std::ostream &out, const Grid &grid);
 };
 
+
+// pretty print for grid
 std::ostream& operator<< (std::ostream &out, const Grid &grid) {
+    // use stack so that the rows are printed bottom to top
     std::stack<std::string> res;
     std::string buf;
     for (int x = 0; x < grid.getXSize(); x++) {
@@ -195,7 +207,6 @@ std::ostream& operator<< (std::ostream &out, const Grid &grid) {
         out << res.top() << '\n';
         res.pop();
     }
-    out << std::endl;
 
     return out;
 }
@@ -220,6 +231,8 @@ bool areNeighbors(const Grid& g1, const Grid& g2) {
     return x_overlap && y_overlap;
 }
 
+// add appropriate grid for our cell to the grids list
+// ensures that all possible neighbors are combined into current grid
 void addGrid(const Vec2d cell) {
     Grid grid(cell);
  
@@ -241,6 +254,8 @@ void addGrid(const Vec2d cell) {
     grids.push_back(new Grid(grid));
 }
 
+// add cell to a grid
+// checks if an appropriate grid exists
 void addToGrid(Vec2d cell) {
     // check if subgrid already exists
     if (!gridExists(cell)) {
@@ -249,12 +264,12 @@ void addToGrid(Vec2d cell) {
 }
 
 int main() {
-    // CONSIDER adding command line option for number of generations
-    const int GENERATIONS {10};
+    // not const so demo can change this value
+    int GENERATIONS {10};
 
     std::vector<Vec2d> next_gen;
 
-    // CONSIDER could create grids during this step instead of doing I/O text data
+    // CONSIDER could create grids during this step instead of saving text
 
     // read from stdin
     std::string line;
@@ -263,18 +278,27 @@ int main() {
     }
 
     for (int i = 0; i < GENERATIONS; i++) {
+        // generate current state from text input
         for (auto pair : next_gen) {
             Vec2d cell(pair);
             addToGrid(cell);
         }
 
-        for (auto g : grids) {
-            std::cout << *g << std::endl;
-        }
+        // INFO this is a visualizer with ASCII graphics -- sleeping the main thread is hacky, but it works
+        // GENERATIONS = 100;
+        // const auto before = std::chrono::system_clock::now();
+        // while (std::chrono::system_clock::now() - before < std::chrono::milliseconds(100)) {
+        //     ;
+        // }
+        // system("clear");
+        // for (auto g : grids) {
+        //     std::cout << *g << std::endl;
+        // }
 
         next_gen.clear();
 
-        // for each subgrid (remember to check perimeter for alive ones too)
+        // calculate next state and save cells to string vector
+        // not the most efficient, but reuses code and makes code flow more readable
         for (Grid* grid : grids) {
             // NOTE: checks perimeter outside of subgrid for born cells
             for (int x = -1; x <= grid->getXSize(); x++) {
@@ -293,13 +317,11 @@ int main() {
         grids.clear();
     }
 
+    // once states are 
     std::cout << HEADER << std::endl;
     for (Vec2d vec : next_gen) {
         std::cout << vec << std::endl;
     }
-
-    // CONSIDER adding ASCII board option
-    // system("clear");
 
     return 0;
 }
