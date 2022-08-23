@@ -38,9 +38,8 @@ class Grid {
         }
 
         // returns if cell was added to grid
-
         bool addCell(const Vec2d cell) {
-            if (inGlobalBounds(cell)) {
+            if (withinGlobalBounds(cell)) {
                 long long x = cell.x - x_start;
                 long long y = cell.y - y_start;
                 if (x < 0) x += getXSize();
@@ -52,8 +51,7 @@ class Grid {
             return false;
         }
 
-        // TODO make sure this doesnt convert some locals
-        bool inGlobalBounds(const Vec2d cell) const {
+        bool withinGlobalBounds(const Vec2d cell) const {
             if (x_start <= cell.x && cell.x < x_end) {
                 if (y_start <= cell.y && cell.y < y_end) {
                     return true;
@@ -62,7 +60,7 @@ class Grid {
             return false;
         }
 
-        bool inLocalBounds(long long x, long long y) const {
+        bool withinLocalBounds(long long x, long long y) const {
             if (0 <= x && x < getXSize()) {
                 if (0 <= y && y < getYSize()) {
                     return true;
@@ -101,7 +99,7 @@ class Grid {
             int i = 0;
             char neighbors = coalesceNeighbors(x, y);
             if (neighbors == 3) return true;
-            else if (inLocalBounds(x, y) && isCellAlive(x, y)) {
+            else if (withinLocalBounds(x, y) && isCellAlive(x, y)) {
                 if (neighbors >= 2 && neighbors <= 3)
                     return true;
             }
@@ -160,18 +158,17 @@ class Grid {
 
             x_start = cell.x - (cell.x % size);
             y_start = cell.y - (cell.y % size);
-            x_end = x_start + size;
-            y_end = y_start + size;
 
-            if (cell.x < 0) {
+            if (x_start != cell.x && cell.x < 0) {
                 x_start -= size;
-                x_end -= size;
             }
             
-            if (cell.y < 0) {
+            if (y_start != cell.y && cell.y < 0) {
                 y_start -= size;
-                y_end -= size;
             }
+
+            x_end = x_start + size;
+            y_end = y_start + size;
 
             addCell(cell);
         }
@@ -271,11 +268,14 @@ int main() {
             addToGrid(cell);
         }
 
+        for (auto g : grids) {
+            std::cout << *g << std::endl;
+        }
+
         next_gen.clear();
 
         // for each subgrid (remember to check perimeter for alive ones too)
         for (Grid* grid : grids) {
-            std::cout << *grid << std::endl;
             // NOTE: checks perimeter outside of subgrid for born cells
             for (int x = -1; x <= grid->getXSize(); x++) {
                 for (int y = -1; y <= grid->getYSize(); y++) {
