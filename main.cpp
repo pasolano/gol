@@ -187,22 +187,27 @@ bool gridExists(Vec2d cell) {
 
 // returns true if grids are touching (including being nested)
 bool areNeighbors(const Grid& g1, const Grid& g2) {
-    bool x_overlap = (g1.x_start <= g2.x_end) || (g2.x_start <= g1.x_end);
-    bool y_overlap = (g1.y_start <= g2.y_end) || (g2.y_start <= g1.y_end);
+    bool x_overlap = std::max(g1.x_start, g2.x_start) <= std::min(g1.x_end, g2.x_end);
+    bool y_overlap = std::max(g1.y_start, g2.y_start) <= std::min(g1.y_end, g2.y_end);
 
     return x_overlap && y_overlap;
 }
 
 void addGrid(const Vec2d cell) {
     Grid grid(cell);
-
-    for (auto ptr : grids) {
-        if (areNeighbors(grid, *ptr)) {
+ 
+    int i;
+    for (i = 0; i < grids.size(); i++) {
+        if (areNeighbors(grid, *grids[i])) {
             // expand grid to absorb other, absorb cells
-            grid.includeGrid(*ptr);
-            // TODO delete other grid and remove from list
+            grid.includeGrid(*grids[i]);
 
-            // TODO repeat loop check from start
+            // TODO delete other grid and remove from list
+            delete grids[i];
+            grids.erase(grids.begin() + i);
+
+            // repeat loop check from start
+            i = 0;
         }
     }
 
