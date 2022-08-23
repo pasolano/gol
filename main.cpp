@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <stack>
 
 const std::string HEADER = "#Life 1.06";
 
@@ -23,7 +24,7 @@ std::ostream& operator<< (std::ostream &out, const Vec2d &v) {
 }
 
 class Grid {
-    const static int GRID_SIZE = 64;
+    const static int GRID_SIZE = 4;
     std::vector<std::vector<bool>> grid;
     public:
         long long x_start, y_start, x_end, y_end; // TODO change to Vec2d
@@ -37,18 +38,21 @@ class Grid {
         }
 
         // returns if cell was added to grid
+
         bool addCell(const Vec2d cell) {
             if (inGlobalBounds(cell)) {
-                long long x = cell.x % getXSize();
-                long long y = cell.y % getYSize();
+                long long x = cell.x - x_start;
+                long long y = cell.y - y_start;
                 if (x < 0) x += getXSize();
                 if (y < 0) y += getYSize();
+
                 grid[x][y] = true;
                 return true;
             }
             return false;
         }
 
+        // TODO make sure this doesnt convert some locals
         bool inGlobalBounds(const Vec2d cell) const {
             if (x_start <= cell.x && cell.x < x_end) {
                 if (y_start <= cell.y && cell.y < y_end) {
@@ -67,20 +71,20 @@ class Grid {
             return false;
         }
 
-        bool isCellAlive(long long x, long long y) {
+        bool isCellAlive(long long x, long long y) const {
             return grid[x][y];
         }
 
         char coalesceNeighbors(long long x, long long y) {
             char tot = 0;
             
-            int min_row = std::max((long long) 0, x - 1);
-            int max_row = std::min(getXSize() - 1, x + 1);
-            int min_col = std::max((long long) 0, y - 1);
-            int max_col = std::min(getYSize() - 1, y + 1);
+            long long min_row = std::max((long long) 0, x - 1);
+            long long max_row = std::min(getXSize() - 1, x + 1);
+            long long min_col = std::max((long long) 0, y - 1);
+            long long max_col = std::min(getYSize() - 1, y + 1);
 
-            for (int row = min_row; row <= max_row; row++) {
-                for (int col = min_col; col <= max_col; col++) {
+            for (long long row = min_row; row <= max_row; row++) {
+                for (long long col = min_col; col <= max_col; col++) {
                     if (row != x || col != y) {
                         if (isCellAlive(row, col)) {
                             tot++;
@@ -171,7 +175,33 @@ class Grid {
 
             addCell(cell);
         }
+
+        friend std::ostream& operator<< (std::ostream &out, const Grid &grid);
 };
+
+std::ostream& operator<< (std::ostream &out, const Grid &grid) {
+    std::stack<std::string> res;
+    std::string buf;
+    for (int x = 0; x < grid.getXSize(); x++) {
+        for (int y = 0; y < grid.getYSize(); y++) {
+            if(grid.isCellAlive(x, y)) {
+                buf += "X";
+            }
+            else {
+                buf += ".";
+            }
+        }
+        res.push(buf);
+        buf = "";
+    }
+    while (!res.empty()) {
+        out << res.top() << '\n';
+        res.pop();
+    }
+    out << std::endl;
+
+    return out;
+}
 
 std::vector<Grid*> grids;
 
@@ -202,7 +232,7 @@ void addGrid(const Vec2d cell) {
             // expand grid to absorb other, absorb cells
             grid.includeGrid(*grids[i]);
 
-            // TODO delete other grid and remove from list
+            // delete other grid and remove from list
             delete grids[i];
             grids.erase(grids.begin() + i);
 
@@ -245,7 +275,7 @@ int main() {
 
         // for each subgrid (remember to check perimeter for alive ones too)
         for (Grid* grid : grids) {
-
+            std::cout << *grid << std::endl;
             // NOTE: checks perimeter outside of subgrid for born cells
             for (int x = -1; x <= grid->getXSize(); x++) {
                 for (int y = -1; y <= grid->getYSize(); y++) {
@@ -259,6 +289,7 @@ int main() {
         for (auto &ptr : grids) {
             delete ptr;
         }
+
         grids.clear();
     }
 
