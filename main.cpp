@@ -24,18 +24,25 @@ std::ostream& operator<< (std::ostream &out, const Vec2d &v) {
 
 class Grid {
     const static int GRID_SIZE = 64;
-    long long size;
     std::vector<std::vector<bool>> grid;
     public:
         long long x_start, y_start, x_end, y_end;
 
+        long long getXSize() const {
+            return abs(x_end - x_start);
+        }
+
+        long long getYSize() const {
+            return abs(y_end - y_start);
+        }
+
         // returns if cell was added to grid
         bool addCell(const Vec2d cell) {
             if (inGlobalBounds(cell)) {
-                long long x = cell.x % size;
-                long long y = cell.y % size;
-                if (x < 0) x += size;
-                if (y < 0) y += size;
+                long long x = cell.x % getXSize();
+                long long y = cell.y % getYSize();
+                if (x < 0) x += getXSize();
+                if (y < 0) y += getYSize();
                 grid[x][y] = true;
                 return true;
             }
@@ -52,8 +59,8 @@ class Grid {
         }
 
         bool inLocalBounds(long long x, long long y) const {
-            if (0 <= x && x < size) {
-                if (0 <= y && y < size) {
+            if (0 <= x && x < getXSize()) {
+                if (0 <= y && y < getYSize()) {
                     return true;
                 }
             }
@@ -68,9 +75,9 @@ class Grid {
             char tot = 0;
             
             int min_row = std::max((long long) 0, x - 1);
-            int max_row = std::min(size - 1, x + 1);
+            int max_row = std::min(getXSize() - 1, x + 1);
             int min_col = std::max((long long) 0, y - 1);
-            int max_col = std::min(size - 1, y + 1);
+            int max_col = std::min(getYSize() - 1, y + 1);
 
             for (int row = min_row; row <= max_row; row++) {
                 for (int col = min_col; col <= max_col; col++) {
@@ -97,11 +104,7 @@ class Grid {
             return false;
         }
 
-        long long getSize() {
-            return size;
-        }
-
-        Grid(const Vec2d cell, long long size = GRID_SIZE) : size(size) {
+        Grid(const Vec2d cell, long long size = GRID_SIZE) {
             grid = std::vector<std::vector<bool>>(size);
             for (int i = 0; i < size; i++)
                 grid[i] = std::vector<bool>(size);
@@ -115,6 +118,7 @@ class Grid {
                 x_start -= size;
                 x_end -= size;
             }
+            
             if (cell.y < 0) {
                 y_start -= size;
                 y_end -= size;
@@ -136,13 +140,38 @@ bool gridExists(Vec2d cell) {
     return false;
 }
 
+// returns true if grids are touching (including being nested)
+bool areNeighbors(const Grid& g1, const Grid& g2) {
+    bool x_overlap = (g1.x_start <= g2.x_end) || (g2.x_start <= g1.x_end);
+    bool y_overlap = (g1.y_start <= g2.y_end) || (g2.y_start <= g1.y_end);
+
+    return x_overlap && y_overlap;
+}
+
+void addGrid(const Vec2d cell) {
+    Grid grid(cell);
+
+    for (auto ptr : grids) {
+        if (areNeighbors(grid, *ptr)) {
+            // expand grid to absorb other, absorb cells
+            grid.include(*ptr);
+            // delete other grid and remove from list
+
+            // repeat loop check from start
+        }
+    }
+
+    grids.push_back(new Grid(grid));
+    // while neighbor or contains existing grid
+    //  expand new grid and adopt cells, delete old cell and remove from list
+    // add new neighbor to list
+
+}
+
 void addToGrid(Vec2d cell) {
     // check if subgrid already exists
     if (!gridExists(cell)) {
-        // create new grid and add cell to it
-        grids.push_back(new Grid(cell));
-
-        // CONSIDER could optimize here by fusing neighboring subgrids together
+        addGrid(cell)
     }
 }
 
@@ -170,11 +199,10 @@ int main() {
 
         // for each subgrid (remember to check perimeter for alive ones too)
         for (Grid* grid : grids) {
-            const long long s {grid->getSize()};
 
-            // NOTE: check perimeter outside of subgrid for born cells
-            for (int x = -1; x <= s; x++) {
-                for (int y = -1; y <= s; y++) {
+            // NOTE: checks perimeter outside of subgrid for born cells
+            for (int x = -1; x <= grid->getXSize(); x++) {
+                for (int y = -1; y <= grid->getYSize(); y++) {
                     if (grid->getCellUpdate(x, y)) {
                         next_gen.push_back(Vec2d(grid->x_start + x, grid->y_start + y));
                     }
