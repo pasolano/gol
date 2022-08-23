@@ -26,7 +26,7 @@ class Grid {
     const static int GRID_SIZE = 64;
     std::vector<std::vector<bool>> grid;
     public:
-        long long x_start, y_start, x_end, y_end;
+        long long x_start, y_start, x_end, y_end; // TODO change to Vec2d
 
         long long getXSize() const {
             return abs(x_end - x_start);
@@ -104,6 +104,51 @@ class Grid {
             return false;
         }
 
+        void includeGrid(Grid& absorb) {
+            long long old_x_start = x_start;
+            long long old_y_start = y_start;
+
+            // change range to include other grid
+            x_start = std::min(x_start, absorb.x_start);
+            y_start = std::min(y_start, absorb.y_start);
+            x_end = std::max(x_end, absorb.x_end);
+            y_end = std::max(y_end, absorb.y_end);
+
+            // expand representation of grid
+            auto new_grid = std::vector<std::vector<bool>>(getXSize());
+            for (int i = 0; i < new_grid.size(); i++) {
+                new_grid[i] = std::vector<bool>(getYSize());
+            }
+
+            // calculate local cell offsets
+            long long x_offset = old_x_start - x_start;
+            long long y_offset = old_y_start - y_start;
+            
+            // translate old cells to new local position
+            for (long long x = 0; x < grid.size(); x++) {
+                for (long long y = 0; y < grid[0].size(); y++) {
+                    if (grid[x][y]) {
+                        new_grid[x + x_offset][y + y_offset] = true;
+                    }
+                }
+            }
+
+            // calculate offsets for neighbor cell
+            x_offset = absorb.x_start - x_start;
+            y_offset = absorb.y_start - y_start;
+
+            // translate absorbed cells to new local position
+            for (long long x = 0; x < absorb.getXSize(); x++) {
+                for (long long y = 0; y < absorb.getYSize(); y++) {
+                    if (absorb.isCellAlive(x, y)) {
+                        new_grid[x + x_offset][y + y_offset] = true;
+                    }
+                }
+            }
+
+            grid = new_grid;
+        }
+
         Grid(const Vec2d cell, long long size = GRID_SIZE) {
             grid = std::vector<std::vector<bool>>(size);
             for (int i = 0; i < size; i++)
@@ -154,24 +199,20 @@ void addGrid(const Vec2d cell) {
     for (auto ptr : grids) {
         if (areNeighbors(grid, *ptr)) {
             // expand grid to absorb other, absorb cells
-            grid.include(*ptr);
-            // delete other grid and remove from list
+            grid.includeGrid(*ptr);
+            // TODO delete other grid and remove from list
 
-            // repeat loop check from start
+            // TODO repeat loop check from start
         }
     }
 
     grids.push_back(new Grid(grid));
-    // while neighbor or contains existing grid
-    //  expand new grid and adopt cells, delete old cell and remove from list
-    // add new neighbor to list
-
 }
 
 void addToGrid(Vec2d cell) {
     // check if subgrid already exists
     if (!gridExists(cell)) {
-        addGrid(cell)
+        addGrid(cell);
     }
 }
 
